@@ -33,29 +33,27 @@ export class NotasControlador {
     vista.alCalificar((id, texto) => this.#intentar(() => modelo.calificar(id, aNota(texto))));
   }
 
-  #agregar(datos) {
-    // TODO 3B (1): el formulario solo debe limpiarse cuando el servidor ACEPTÓ la orden. Ahora #intentar
-    //              devolverá una promesa: hay que esperarla antes de preguntar si fue aceptada.
-    const acepto = this.#intentar(() =>
+    async #agregar(datos) {
+    const acepto = await this.#intentar(() =>
       this.#modelo.agregar({ nombre: datos.nombre, peso: Number(datos.peso), nota: aNota(datos.nota) }),
     );
     if (acepto) this.#vista.limpiarFormulario();
   }
 
-  /** Ejecuta una orden al Modelo; si no se puede cumplir, muestra el motivo y refresca la Vista. */
-  #intentar(orden) {
-    // TODO 3B (2): la orden devuelve una promesa. Si no la esperas (await), el try/catch no atrapa su rechazo
-    //              y el error se pierde. Convierte este método en async y espera la orden.
-    // TODO 3B (3): además de ErrorDeReglas (culpa del usuario: se muestra su mensaje), puede llegar un
-    //              ErrorDeServicio (falló el cable o el servidor: se muestra MENSAJE_SERVICIO). Cualquier otro
-    //              error es un fallo de programación: NO se esconde (se vuelve a lanzar).
+    /** Ejecuta una orden al Modelo; si no se puede cumplir, muestra el motivo y refresca la Vista. */
+  async #intentar(orden) {
     try {
-      orden();
+      await orden();
       this.#vista.limpiarError();
       return true;
     } catch (error) {
-      if (!(error instanceof ErrorDeReglas)) throw error; // un error inesperado no se esconde
-      this.#vista.mostrarError(error.message);
+      if (error instanceof ErrorDeReglas) {
+        this.#vista.mostrarError(error.message);
+      } else if (error instanceof ErrorDeServicio) {
+        this.#vista.mostrarError(MENSAJE_SERVICIO);
+      } else {
+        throw error; // un error inesperado no se esconde
+      }
       this.#vista.render(); // revierte lo que el usuario escribió y el servidor no aceptó
       return false;
     }
