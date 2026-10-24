@@ -59,17 +59,15 @@ export function crearRutas(modelo) {
   const idDe = (solicitud) => (/^[1-9]\d*$/.test(solicitud.params.id) ? Number(solicitud.params.id) : NaN);
 
   // -------------------------------------------------------------- 2A · Leer
-  const listarV1 = () => {
-    // TODO 2A: responde 200 con un ARREGLO de representaciones (usa modelo.evaluaciones y representarEvaluacion).
-    //          Parte 4B: aquí volverás para agregar los avisos de que la v1 está obsoleta.
-    throw new Error('TODO 2A · listarV1()');
-  };
+  const listarV1 = () => ({
+    status: 200,
+    cuerpo: modelo.evaluaciones.map((e) => representarEvaluacion(e)),
+  });
 
-  const obtener = (solicitud) => {
-    // TODO 2A: responde 200 con la representación de UNA evaluación. Usa modelo.obtener(idDe(solicitud)):
-    //          si no existe, el Modelo lanza un error con código NO_EXISTE y tu tabla de estados (2B) lo vuelve 404.
-    throw new Error('TODO 2A · obtener()');
-  };
+  const obtener = (solicitud) => ({
+    status: 200,
+    cuerpo: representarEvaluacion(modelo.obtener(idDe(solicitud))),
+  });
 
   // EJEMPLO RESUELTO (así se ve un manejador completo): el resumen es un recurso CALCULADO, de solo lectura.
   const resumen = () => ({ status: 200, cuerpo: representarResumen(modelo.resumen()) });
@@ -113,7 +111,9 @@ export function crearRutas(modelo) {
   // Cada entrada es { metodo, ruta, manejador }. La ruta usa plantillas: '/v1/evaluaciones/{id}'.
   // Mira primero tu diseño de la Parte 1: una URI nombra un recurso (sustantivo), el método HTTP es la acción.
   return [
-    // TODO 2A: registra aquí las lecturas: GET de la lista, GET de una evaluación y GET del resumen.
+    { metodo: 'GET', ruta: '/v1/evaluaciones', manejador: listarV1 },
+    { metodo: 'GET', ruta: '/v1/evaluaciones/{id}', manejador: obtener },
+    { metodo: 'GET', ruta: '/v1/resumen', manejador: resumen },
     // TODO 2B: registra aquí la creación.
     // TODO 2C: registra aquí la modificación de la nota y el borrado.
     //
