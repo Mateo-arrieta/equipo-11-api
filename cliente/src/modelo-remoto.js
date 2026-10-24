@@ -34,12 +34,15 @@ export class ErrorDeServicio extends Error {
 
 /** De un fallo de HTTP a un error que el Controlador entienda. */
 function traducir(error) {
-  // TODO 3A (errores): decide qué es cada cosa.
-  //   · ErrorApi con estado 404, 409 o 422 → son decisiones del negocio → new ErrorDeReglas(<el "detail" del problema>)
-  //     (error.problema?.detail trae el mensaje legible que mandó el servidor).
-  //   · cualquier otro ErrorApi (400, 415, 500…) → new ErrorDeServicio('El servidor no pudo completar la operación.', error)
-  //   · ErrorDeRed (no hubo respuesta) → new ErrorDeServicio('No hay conexión con el servidor.', error)
-  //   · lo demás es un fallo de programación: se devuelve igual, no se esconde.
+  if (error instanceof ErrorApi) {
+    if ([404, 409, 422].includes(error.status)) {
+      return new ErrorDeReglas(error.problema?.detail ?? error.message);
+    }
+    return new ErrorDeServicio('El servidor no pudo completar la operación.', error);
+  }
+  if (error instanceof ErrorDeRed) {
+    return new ErrorDeServicio('No hay conexión con el servidor.', error);
+  }
   return error;
 }
 
@@ -82,31 +85,28 @@ export class NotasModeloRemoto {
     return () => this.#suscriptores.delete(suscriptor);
   }
 
-  // ---------------------------------------------------------------- 3A · Las órdenes viajan por la API
-  // this.#api.solicitar(metodo, recurso, cuerpo) hace la solicitud (el recurso va SIN la versión: '/evaluaciones/3')
-  // y lanza ErrorApi o ErrorDeRed si algo sale mal. Cada orden es una sola solicitud a la API que diseñaste.
-
+  // 3A · Las órdenes viajan por la API
   async agregar({ nombre, peso, nota = null }) {
-    // TODO 3A: una solicitud para crear (método y recurso de tu diseño) con { nombre, peso, nota }. Usa #ordenar.
-    throw new Error('TODO 3A · agregar()');
+    await this.#ordenar(() => this.#api.solicitar('POST', '/evaluaciones', { nombre, peso, nota }));
   }
 
   async calificar(id, nota) {
-    // TODO 3A: una solicitud para cambiar solo la nota de la evaluación `id`. Usa #ordenar.
-    throw new Error('TODO 3A · calificar()');
+    await this.#ordenar(() => this.#api.solicitar('PATCH', `/evaluaciones/${id}`, { nota }));
   }
 
   async eliminar(id) {
-    // TODO 3A: una solicitud para borrar la evaluación `id`. Usa #ordenar.
-    throw new Error('TODO 3A · eliminar()');
+    await this.#ordenar(() => this.#api.solicitar('DELETE', `/evaluaciones/${id}`));
   }
 
-  /** Manda una orden al servidor y, si la aceptó, vuelve a pedirle el estado (el servidor es la verdad). */
-  async #ordenar(orden) {
-    // TODO 3A: ejecuta `orden()`. Si lanza un error: (1) si es un ErrorApi con estado 404 la evaluación ya no existe
-    //          (alguien la borró desde otro aparato), así que pon la pantalla al día con
-    //          `await this.sincronizar().catch(() => {})`; (2) en todos los casos lanza traducir(error).
-    //          Si todo salió bien: `await this.sincronizar()`.
-    await orden();
+    async #ordenar(orden) {
+    try {
+      await orden();
+    } catch (error) {
+      if (error instanceof ErrorApi && error.status === 404) {
+        await this.sincronizar().catch(() => {});
+      }
+      throw traducir(error);
+    }
+    await this.sincronizar();
   }
 }
