@@ -81,15 +81,14 @@ export function crearRutas(modelo) {
     };
   };
 
-  const calificar = (solicitud) => {
-    // TODO 2C: modelo.calificar(idDe(solicitud), solicitud.cuerpo.nota) y responde 200 con la evaluación actualizada.
-    //          La nota puede ser un número entre 0 y 5, o null para quitarla.
-    throw new Error('TODO 2C · calificar()');
-  };
+  const calificar = (solicitud) => ({
+    status: 200,
+    cuerpo: representarEvaluacion(modelo.calificar(idDe(solicitud), solicitud.cuerpo.nota)),
+  });
 
   const eliminar = (solicitud) => {
-    // TODO 2C: modelo.eliminar(...) y responde 204 (sin cuerpo): hecho, y no hay nada que devolver.
-    throw new Error('TODO 2C · eliminar()');
+    modelo.eliminar(idDe(solicitud));
+    return { status: 204 };
   };
 
   // -------------------------------------------------------------- 4A · v2: lista paginada, filtrada y ordenada
@@ -115,7 +114,8 @@ export function crearRutas(modelo) {
     { metodo: 'GET', ruta: '/v1/evaluaciones/{id}', manejador: obtener },
     { metodo: 'GET', ruta: '/v1/resumen', manejador: resumen },
     { metodo: 'POST', ruta: '/v1/evaluaciones', manejador: crear },
-    // TODO 2C: registra aquí la modificación de la nota y el borrado.
+    { metodo: 'PATCH', ruta: '/v1/evaluaciones/{id}', manejador: calificar },
+    { metodo: 'DELETE', ruta: '/v1/evaluaciones/{id}', manejador: eliminar },
     //
     // TODO 4C: cuando termines la v2 (4A) y los avisos (4B), agrupa lo que no cambió con
     //          ...paraVersiones(['v1', 'v2'], [ ...las entradas sin el prefijo /v1... ]) y registra aparte la lista de cada versión:
