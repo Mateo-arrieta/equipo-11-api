@@ -20,23 +20,21 @@ import { ErrorHttp, leerEntero, paraVersiones } from './nucleo.mjs';
 import { representarEvaluacion, representarResumen, tipoDeProblema } from './representaciones.mjs';
 
 // ---------------------------------------------------------------- 2B · De regla del Modelo a estado HTTP
-// El Modelo no sabe qué es un 404. Cada error suyo trae un `codigo` (mira CODIGOS en servidor/modelo.js);
-// esta tabla decide qué estado HTTP le corresponde a cada uno.
 const ESTADO_POR_CODIGO = {
-  // TODO 2B: asigna un estado a cada código. Piensa en tres grupos:
-  //   · el recurso no existe ............................................... ¿404?
-  //   · el CONTENIDO enviado incumple una regla (un valor inválido) ........ ¿400, 409 o 422?
-  //   · el contenido choca con el ESTADO actual (duplicado, tope de pesos) . ¿400, 409 o 422?
-  // Escribe también tu decisión, y su porqué, en ENTREGA.md (sección 2).
-  //   NO_EXISTE: ...,
+  NO_EXISTE: 404,
+  NOMBRE_OBLIGATORIO: 422,
+  NOMBRE_LARGO: 422,
+  PESO_FUERA_DE_RANGO: 422,
+  NOTA_FUERA_DE_RANGO: 422,
+  NOMBRE_DUPLICADO: 409,
+  PESOS_EXCEDEN_100: 409,
 };
 
 /** El núcleo la llama con cada error que no es un ErrorHttp. Lo que no es del Modelo se devuelve igual (→ 500). */
 export function traducirError(error) {
-  // TODO 2B: si NO es un ErrorDeReglas, devuélvelo tal cual (el núcleo lo convertirá en un 500 sin filtrar detalles).
-  //          Si lo es, devuelve new ErrorHttp(estado, error.message, tipoDeProblema(error.codigo)),
-  //          donde `estado` sale de tu tabla ESTADO_POR_CODIGO (y si el código no está, usa 422).
-  return error;
+  if (!(error instanceof ErrorDeReglas)) return error;
+  const estado = ESTADO_POR_CODIGO[error.codigo] ?? 422;
+  return new ErrorHttp(estado, error.message, tipoDeProblema(error.codigo));
 }
 
 // ---------------------------------------------------------------- Fechas del ciclo de vida de la v1 (Parte 4B)
@@ -74,11 +72,13 @@ export function crearRutas(modelo) {
 
   // -------------------------------------------------------------- 2B · Crear   y   2C · Modificar y borrar
   const crear = ({ cuerpo, base }) => {
-    // TODO 2B: crea la evaluación con modelo.agregar({ nombre, peso, nota }) usando SOLO esos tres campos
-    //          (el id lo decide el servidor, aunque el cliente mande uno).
-    //          Responde 201 (no 200), con la cabecera Location apuntando a la evaluación nueva
-    //          (`${base}/evaluaciones/${id}`) y con su representación en el cuerpo.
-    throw new Error('TODO 2B · crear()');
+    const { nombre, peso, nota } = cuerpo;
+    const nueva = modelo.agregar({ nombre, peso, nota });
+    return {
+      status: 201,
+      cabeceras: { Location: `${base}/evaluaciones/${nueva.id}` },
+      cuerpo: representarEvaluacion(nueva),
+    };
   };
 
   const calificar = (solicitud) => {
@@ -114,7 +114,7 @@ export function crearRutas(modelo) {
     { metodo: 'GET', ruta: '/v1/evaluaciones', manejador: listarV1 },
     { metodo: 'GET', ruta: '/v1/evaluaciones/{id}', manejador: obtener },
     { metodo: 'GET', ruta: '/v1/resumen', manejador: resumen },
-    // TODO 2B: registra aquí la creación.
+    { metodo: 'POST', ruta: '/v1/evaluaciones', manejador: crear },
     // TODO 2C: registra aquí la modificación de la nota y el borrado.
     //
     // TODO 4C: cuando termines la v2 (4A) y los avisos (4B), agrupa lo que no cambió con
