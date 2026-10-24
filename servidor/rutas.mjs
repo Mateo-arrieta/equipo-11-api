@@ -57,8 +57,13 @@ export function crearRutas(modelo) {
   const idDe = (solicitud) => (/^[1-9]\d*$/.test(solicitud.params.id) ? Number(solicitud.params.id) : NaN);
 
   // -------------------------------------------------------------- 2A · Leer
-  const listarV1 = () => ({
+   const listarV1 = () => ({
     status: 200,
+    cabeceras: {
+      Deprecation: `@${Math.floor(DEPRECIADA_DESDE.getTime() / 1000)}`,
+      Sunset: SE_RETIRA_EN.toUTCString(),
+      Link: '</v2/evaluaciones>; rel="successor-version"',
+    },
     cuerpo: modelo.evaluaciones.map((e) => representarEvaluacion(e)),
   });
 
