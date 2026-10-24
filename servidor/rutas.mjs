@@ -141,18 +141,16 @@ export function crearRutas(modelo) {
   };
 
   // -------------------------------------------------------------- La tabla de rutas
-  // Cada entrada es { metodo, ruta, manejador }. La ruta usa plantillas: '/v1/evaluaciones/{id}'.
-  // Mira primero tu diseño de la Parte 1: una URI nombra un recurso (sustantivo), el método HTTP es la acción.
   return [
+    ...paraVersiones(['v1', 'v2'], [
+      { metodo: 'GET', ruta: '/evaluaciones/{id}', manejador: obtener },
+      { metodo: 'GET', ruta: '/resumen', manejador: resumen },
+      { metodo: 'POST', ruta: '/evaluaciones', manejador: crear },
+      { metodo: 'PATCH', ruta: '/evaluaciones/{id}', manejador: calificar },
+      { metodo: 'DELETE', ruta: '/evaluaciones/{id}', manejador: eliminar },
+    ]),
+    // Lo único que cambia entre versiones es la lista:
     { metodo: 'GET', ruta: '/v1/evaluaciones', manejador: listarV1 },
-    { metodo: 'GET', ruta: '/v1/evaluaciones/{id}', manejador: obtener },
-    { metodo: 'GET', ruta: '/v1/resumen', manejador: resumen },
-    { metodo: 'POST', ruta: '/v1/evaluaciones', manejador: crear },
-    { metodo: 'PATCH', ruta: '/v1/evaluaciones/{id}', manejador: calificar },
-    { metodo: 'DELETE', ruta: '/v1/evaluaciones/{id}', manejador: eliminar },
     { metodo: 'GET', ruta: '/v2/evaluaciones', manejador: listarV2 },
-    // TODO 4C: cuando termines la v2 (4A) y los avisos (4B), agrupa lo que no cambió con
-    //          ...paraVersiones(['v1', 'v2'], [ ...las entradas sin el prefijo /v1... ]) y registra aparte la lista de cada versión:
-    //          GET /v1/evaluaciones → listarV1 y GET /v2/evaluaciones → listarV2.
   ];
 }
