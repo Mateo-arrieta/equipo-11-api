@@ -112,23 +112,76 @@ const listarV1 = {
   operationId: 'listarEvaluaciones_v1',
   tags: ['v1'],
   summary: 'Lista todas las evaluaciones',
-  // TODO 5C: la v1 ya está obsoleta (Parte 4B). Márcala con `deprecated: true` y documenta, en la respuesta 200, las tres
-  //          cabeceras que ahora devuelve: Deprecation, Sunset y Link (mira cómo se documenta `Location` en crearEvaluacion).
+  deprecated: true,
   responses: {
     200: {
       description: 'Un arreglo con todas las evaluaciones.',
+      headers: {
+        Deprecation: {
+          description: 'Desde cuándo está obsoleta esta versión (RFC 9745).',
+          schema: { type: 'string' },
+        },
+        Sunset: {
+          description: 'Fecha en que se retira esta versión (RFC 8594).',
+          schema: { type: 'string' },
+        },
+        Link: {
+          description: 'Apunta a la versión sucesora, con rel="successor-version" (RFC 8288).',
+          schema: { type: 'string' },
+        },
+      },
       content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Evaluacion' } } } },
     },
   },
 };
 
 const listarV2 = {
-  // TODO 5B: documenta GET /v2/evaluaciones (Parte 4A). Necesita:
-  //   · operationId: 'listarEvaluaciones_v2', tags: ['v2'] y un summary;
-  //   · parameters (in: 'query'): pagina, porPagina, estado y orden, con su tipo, sus límites (minimum/maximum),
-  //     sus valores permitidos (enum) y su valor por defecto (default);
-  //   · responses 200: la cabecera `Link` y el contenido con el esquema PaginaDeEvaluaciones (ya existe en components);
-  //   · responses 400: problema('...') cuando algún parámetro no es válido.
+  operationId: 'listarEvaluaciones_v2',
+  tags: ['v2'],
+  summary: 'Lista las evaluaciones paginadas, con filtro y orden',
+  parameters: [
+    {
+      name: 'pagina',
+      in: 'query',
+      required: false,
+      description: 'Número de página, empezando en 1.',
+      schema: { type: 'integer', minimum: 1, default: 1 },
+    },
+    {
+      name: 'porPagina',
+      in: 'query',
+      required: false,
+      description: 'Cuántas evaluaciones trae cada página.',
+      schema: { type: 'integer', minimum: 1, maximum: 50, default: 10 },
+    },
+    {
+      name: 'estado',
+      in: 'query',
+      required: false,
+      description: 'Filtra por tener nota (calificada) o no (pendiente).',
+      schema: { type: 'string', enum: ['pendiente', 'calificada'] },
+    },
+    {
+      name: 'orden',
+      in: 'query',
+      required: false,
+      description: 'Campo por el que se ordena; un guion delante invierte el orden.',
+      schema: { type: 'string', enum: ['id', 'nombre', '-nombre', 'peso', '-peso'], default: 'id' },
+    },
+  ],
+  responses: {
+    200: {
+      description: 'Una página de evaluaciones.',
+      headers: {
+        Link: {
+          description: 'Dónde están la página anterior (rel="prev") y la siguiente (rel="next"), cuando existen (RFC 8288).',
+          schema: { type: 'string' },
+        },
+      },
+      content: json('PaginaDeEvaluaciones'),
+    },
+    400: problema('Algún parámetro (pagina, porPagina, estado u orden) no es válido.'),
+  },
 };
 
 // ------------------------------------------------------------------------------ Los esquemas
@@ -187,8 +240,7 @@ const esquemas = {
 };
 
 // ------------------------------------------------------------------------------ El documento completo
-// TODO 5A: cuando tu API ya tenga la v2 (Parte 4C), agrégala aquí: ['v1', 'v2'].
-const VERSIONES = ['v1'];
+const VERSIONES = ['v1', 'v2'];
 
 export function documento() {
   const paths = {};
@@ -202,8 +254,7 @@ export function documento() {
     for (const { ruta, metodo, operacion } of definiciones) agregar(ruta, metodo, operacion);
   }
   agregar('/v1/evaluaciones', 'get', listarV1);
-  // TODO 5B: cuando termines listarV2, activa esta línea:
-  // agregar('/v2/evaluaciones', 'get', listarV2);
+  agregar('/v2/evaluaciones', 'get', listarV2);
 
   return {
     openapi: '3.1.0',
